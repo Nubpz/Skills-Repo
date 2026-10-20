@@ -1,0 +1,27 @@
+{
+  "title": "HR Policy Assistant",
+  "summary": "Answers HR policy questions from SharePoint and hands off to HR when it cannot answer.",
+  "nodes": [
+    {"id": "emp", "label": "Employee in Microsoft Teams", "layer": "users", "type": "channel"},
+    {"id": "agent", "label": "HR Policy Agent", "layer": "agent", "type": "agent", "note": "Copilot Studio agent"},
+    {"id": "mail", "label": "Outlook: send email", "layer": "connectors", "type": "connector", "approved_by": "Outlook.xlsx"},
+    {"id": "task", "label": "Planner: create task", "layer": "connectors", "type": "connector", "approved_by": "Planner.xlsx"},
+    {"id": "sp", "label": "SharePoint: HR policies library", "layer": "data", "type": "knowledge", "approved_by": "SharePoint.xlsx"},
+    {"id": "hr", "label": "HR specialist", "layer": "data", "type": "human"}
+  ],
+  "edges": [
+    {"from": "emp", "to": "agent", "label": "Question and answer", "step": 1, "bidirectional": true},
+    {"from": "agent", "to": "sp", "label": "Searches HR policies", "step": 2, "bidirectional": true},
+    {"from": "agent", "to": "task", "label": "Creates follow-up task", "step": 3},
+    {"from": "agent", "to": "mail", "label": "Emails HR when unsure", "step": 4},
+    {"from": "task", "to": "hr", "label": "Task assigned", "step": 5},
+    {"from": "mail", "to": "hr", "label": "Question delivered", "step": 6}
+  ],
+  "replaced": [
+    {"requested": "Gmail", "reason": "Not listed as approved", "used_instead": "Outlook"}
+  ],
+  "assumptions": [
+    "Employees sign in with their work account",
+    "Sample data only: connector names and approval files are made up for testing"
+  ]
+}

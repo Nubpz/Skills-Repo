@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<style>
+:root{
+  --bg:#ffffff; --fg:#17202a; --muted:#566573; --panel:#f4f6f8; --line:#b8c2cc; --band:#eaeff4;
+  --accent:#d9480f; --btn:#1a56db; --btnfg:#ffffff; --nodefg:#111827;
+  --channel-bg:#f1e8fd; --channel-bd:#7c3aed;
+  --agent-bg:#e1ecff; --agent-bd:#1a56db;
+  --connector-bg:#e2f5e9; --connector-bd:#1e7e34;
+  --knowledge-bg:#fff1d6; --knowledge-bd:#b45309;
+  --system-bg:#fff1d6; --system-bd:#b45309;
+  --human-bg:#fde4e4; --human-bd:#b91c1c;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f1419; --fg:#e6edf3; --muted:#9aa7b4; --panel:#171d25; --line:#4a5663; --band:#1c242e;
+    --accent:#ff8a3d; --btn:#4c8dff; --btnfg:#07101f; --nodefg:#f3f6fa;
+    --channel-bg:#2a1f45; --channel-bd:#a78bfa;
+    --agent-bg:#14284d; --agent-bd:#6ea8ff;
+    --connector-bg:#12301f; --connector-bd:#4ade80;
+    --knowledge-bg:#3a2a0c; --knowledge-bd:#fbbf24;
+    --system-bg:#3a2a0c; --system-bd:#fbbf24;
+    --human-bg:#3d1717; --human-bd:#f87171;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{padding:16px 16px 4px}
+h1{margin:0;font-size:1.35rem}
+#summary{margin:4px 0 0;color:var(--muted)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+button,select{font:inherit;padding:6px 14px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--fg);cursor:pointer}
+button.primary{background:var(--btn);color:var(--btnfg);border-color:var(--btn)}
+button:focus-visible,select:focus-visible,li.step:focus-visible{outline:3px solid var(--btn);outline-offset:2px}
+main{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:16px;padding:12px 16px 28px}
+@media (max-width:900px){main{grid-template-columns:1fr}}
+#stage{border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow:hidden;align-self:start}
+svg{display:block;width:100%;height:auto}
+aside{min-width:0}
+aside h2{font-size:1rem;margin:0 0 8px}
+aside section{margin-bottom:14px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+ol#steps{margin:0;padding:0;list-style:none}
+li.step{display:flex;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;border:1px solid transparent}
+li.step .n{flex:none;width:22px;height:22px;border-radius:50%;background:var(--line);color:var(--bg);text-align:center;font-size:12px;line-height:22px;font-weight:700}
+li.step.active{border-color:var(--accent);background:var(--bg)}
+li.step.active .n{background:var(--accent);color:#fff}
+li.step.done .n{background:var(--btn);color:var(--btnfg)}
+li.step .t{font-weight:600}
+li.step .d{color:var(--muted);font-size:13px}
+ul.plain{margin:0;padding-left:18px}
+ul.plain li{margin:3px 0}
+.small{font-size:13px;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px}
+.legend span{display:inline-flex;align-items:center;gap:6px;font-size:13px}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:4px;border:2px solid}
+.band{fill:var(--band);stroke:var(--line)}
+.bandlabel{fill:var(--muted);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.edge{fill:none;stroke:var(--line);stroke-width:2}
+.edge.done{stroke:var(--btn);stroke-width:2.5}
+.edge.active{stroke:var(--accent);stroke-width:3.5;stroke-dasharray:8 6;animation:dash .7s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-14}}
+.badge circle{fill:var(--bg);stroke:var(--line);stroke-width:1.5}
+.badge text{fill:var(--muted);font-size:11px;font-weight:700;text-anchor:middle;dominant-baseline:central}
+.badge.done circle{stroke:var(--btn)}
+.badge.done text{fill:var(--btn)}
+.badge.active circle{fill:var(--accent);stroke:var(--accent)}
+.badge.active text{fill:#ffffff}
+.node rect{stroke-width:2}
+.node text{fill:var(--nodefg);text-anchor:middle;font-size:13px;font-weight:600}
+.node text.src{font-size:10.5px;font-weight:500;opacity:.85}
+.node{transition:opacity .25s}
+.node.dim{opacity:.4}
+.node.hot rect{stroke-width:4}
+.dot{fill:var(--accent);stroke:var(--bg);stroke-width:2}
+.elabel rect{fill:var(--bg);stroke:var(--accent);stroke-width:1.5}
+.elabel text{fill:var(--fg);font-size:12px;text-anchor:middle;dominant-baseline:central}
+@media (prefers-reduced-motion: reduce){.edge.active{animation:none}.node{transition:none}}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title"></h1>
+  <p id="summary"></p>
+  <div class="controls" role="group" aria-label="Animation controls">
+    <button id="play" class="primary" type="button">Play</button>
+    <button id="step" type="button">Next step</button>
+    <button id="reset" type="button">Reset</button>
+    <label class="small" for="speed">Speed</label>
+    <select id="speed"><option value="0.5">0.5x</option><option value="1" selected>1x</option><option value="2">2x</option></select>
+  </div>
+</header>
+<main>
+  <div id="stage"><svg id="svg" role="img"></svg></div>
+  <aside>
+    <section><h2>Flow steps</h2><ol id="steps"></ol><p class="small">Select a step to jump to it.</p></section>
+    <section id="gov-approved"><h2>Approved by governance knowledge</h2><ul class="plain" id="approved"></ul></section>
+    <section id="gov-replaced"><h2>Replaced during design</h2><ul class="plain" id="replaced"></ul></section>
+    <section id="gov-assumptions"><h2>Assumptions</h2><ul class="plain" id="assumptions"></ul></section>
+    <section><h2>Legend</h2><div class="legend" id="legend"></div>
+      <p class="small">Approval sources come from the governance knowledge available when this design was made. Confirm in the Power Platform admin center before building.</p></section>
+  </aside>
+</main>
+<script type="application/json" id="spec">__SPEC_JSON__</script>
+<script>
+(function(){
+"use strict";
+var spec = JSON.parse(document.getElementById("spec").textContent);
+var NS = "http://www.w3.org/2000/svg";
+var LAYERS = [
+  {id:"users", label:"Users and channels"},
+  {id:"agent", label:"Agent"},
+  {id:"connectors", label:"Approved connectors"},
+  {id:"data", label:"Knowledge and systems"}
+];
+var TYPE_LABELS = {channel:"Channel", agent:"Agent", connector:"Connector", knowledge:"Knowledge source", system:"System", human:"Person or team"};
+var W = 1000, NW = 210, NH = 70, PADT = 36, ROWGAP = 24, BANDGAP = 72, MAXROW = 4;
+var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function el(name, attrs, parent){
+  var e = document.createElementNS(NS, name);
+  for (var k in attrs){ e.setAttribute(k, attrs[k]); }
+  if (parent){ parent.appendChild(e); }
+  return e;
+}
+function text(parent, cls, x, y, s){
+  var t = el("text", {x:x, y:y, "class":cls || ""}, parent);
+  t.textContent = s;
+  return t;
+}
+function wrap(s, max){
+  var words = String(s).split(/\s+/), lines = [], cur = "";
+  words.forEach(function(w){
+    if ((cur + " " + w).trim().length > max && cur){ lines.push(cur); cur = w; }
+    else { cur = (cur + " " + w).trim(); }
+  });
+  if (cur){ lines.push(cur); }
+  if (lines.length > 2){ lines = [lines[0], lines.slice(1).join(" ")]; }
+  if (lines[1] && lines[1].length > max + 4){ lines[1] = lines[1].slice(0, max + 1) + "…"; }
+  return lines;
+}
+function clip(s, n){ s = String(s); return s.length > n ? s.slice(0, n - 1) + "…" : s; }
+function li(parent, s){ var e = document.createElement("li"); e.textContent = s; parent.appendChild(e); return e; }
+
+document.getElementById("title").textContent = spec.title;
+var sumEl = document.getElementById("summary");
+if (spec.summary){ sumEl.textContent = spec.summary; } else { sumEl.style.display = "none"; }
+
+/* ---- layout: layers top to bottom, nodes spread evenly left to right inside each layer ---- */
+var nodes = spec.nodes, byId = {};
+nodes.forEach(function(n){ byId[n.id] = n; });
+var layers = LAYERS.filter(function(L){ return nodes.some(function(n){ return n.layer === L.id; }); });
+var y = 10;
+layers.forEach(function(L, li_){
+  var members = nodes.filter(function(n){ return n.layer === L.id; });
+  var nrows = Math.ceil(members.length / MAXROW);
+  var per = Math.ceil(members.length / nrows);
+  L.y = y;
+  L.h = PADT + nrows * NH + (nrows - 1) * ROWGAP + 18;
+  for (var r = 0; r < nrows; r++){
+    var row = members.slice(r * per, (r + 1) * per);
+    row.forEach(function(n, c){
+      n._x = (c + 1) * W / (row.length + 1);
+      n._y = y + PADT + r * (NH + ROWGAP);
+      n._row = r; n._li = li_;
+    });
+  }
+  y += L.h + BANDGAP;
+});
+var H = y - BANDGAP + 10;
+
+var svg = document.getElementById("svg");
+svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+svg.setAttribute("aria-label", "Architecture diagram: " + spec.title);
+
+var defs = el("defs", {}, svg);
+[["n","var(--line)"],["d","var(--btn)"],["a","var(--accent)"]].forEach(function(m){
+  var mk = el("marker", {id:"arrow-" + m[0], viewBox:"0 0 10 10", refX:"9", refY:"5", markerWidth:"7", markerHeight:"7", orient:"auto-start-reverse"}, defs);
+  el("path", {d:"M0 0L10 5L0 10z", style:"fill:" + m[1]}, mk);
+});
+
+layers.forEach(function(L){
+  el("rect", {x:6, y:L.y, width:W - 12, height:L.h, rx:14, "class":"band"}, svg);
+  text(svg, "bandlabel", 22, L.y + 22, L.label);
+});
+var gEdges = el("g", {}, svg), gNodes = el("g", {}, svg), gOver = el("g", {}, svg);
+
+/* ---- edges ---- */
+var edges = spec.edges.slice().sort(function(a, b){ return a.step - b.step; });
+edges.forEach(function(e){ e.a = byId[e.from]; e.b = byId[e.to]; });
+function sidesFor(a, b){
+  if (a._li < b._li) return ["b", "t"];
+  if (a._li > b._li) return ["t", "b"];
+  if (a._row < b._row) return ["b", "t"];
+  if (a._row > b._row) return ["t", "b"];
+  return a._x <= b._x ? ["r", "l"] : ["l", "r"];
+}
+var ports = {};
+edges.forEach(function(e, i){
+  var s = sidesFor(e.a, e.b);
+  e.s1 = s[0]; e.s2 = s[1];
+  var k1 = e.a.id + ":" + s[0], k2 = e.b.id + ":" + s[1];
+  (ports[k1] = ports[k1] || []).push({i:i, end:1, other:e.b});
+  (ports[k2] = ports[k2] || []).push({i:i, end:2, other:e.a});
+});
+Object.keys(ports).forEach(function(k){
+  var list = ports[k], side = k.split(":")[1], vertical = (side === "t" || side === "b");
+  list.sort(function(p, q){ return vertical ? p.other._x - q.other._x : p.other._y - q.other._y; });
+  var step = vertical ? 26 : 16, limit = vertical ? NW / 2 - 26 : NH / 2 - 14;
+  list.forEach(function(p, j){
+    var off = (j - (list.length - 1) / 2) * step;
+    off = Math.max(-limit, Math.min(limit, off));
+    edges[p.i]["off" + p.end] = off;
+  });
+});
+function portPoint(n, side, off){
+  if (side === "t") return {x:n._x + off, y:n._y};
+  if (side === "b") return {x:n._x + off, y:n._y + NH};
+  if (side === "l") return {x:n._x - NW / 2, y:n._y + NH / 2 + off};
+  return {x:n._x + NW / 2, y:n._y + NH / 2 + off};
+}
+edges.forEach(function(e){
+  var p1 = portPoint(e.a, e.s1, e.off1 || 0), p2 = portPoint(e.b, e.s2, e.off2 || 0), d;
+  if (e.s1 === "l" || e.s1 === "r"){
+    var dx = (p2.x - p1.x) / 2;
+    d = "M" + p1.x + " " + p1.y + " C" + (p1.x + dx) + " " + p1.y + " " + (p2.x - dx) + " " + p2.y + " " + p2.x + " " + p2.y;
+  } else if (Math.abs(e.a._li - e.b._li) > 1){
+    /* skips a layer: swing out around the nodes of the layers in between */
+    var lo = Math.min(e.a._li, e.b._li), hi = Math.max(e.a._li, e.b._li), minL = W, maxR = 0;
+    nodes.forEach(function(n){
+      if (n._li > lo && n._li < hi){ minL = Math.min(minL, n._x - NW / 2); maxR = Math.max(maxR, n._x + NW / 2); }
+    });
+    var left = Math.max(26, minL - 36), right = Math.min(W - 26, maxR + 36), avg = (p1.x + p2.x) / 2;
+    var xc = (minL - 36 < 26) ? right : (maxR + 36 > W - 26) ? left : (Math.abs(left - avg) <= Math.abs(right - avg) ? left : right);
+    var ymid = (p1.y + p2.y) / 2, d1 = (ymid - p1.y) * 0.6, d2 = (p2.y - ymid) * 0.6;
+    d = "M" + p1.x + " " + p1.y + " C" + p1.x + " " + (p1.y + d1) + " " + xc + " " + (ymid - d1) + " " + xc + " " + ymid +
+        " C" + xc + " " + (ymid + d2) + " " + p2.x + " " + (p2.y - d2) + " " + p2.x + " " + p2.y;
+  } else {
+    var ym = (p1.y + p2.y) / 2;
+    d = "M" + p1.x + " " + p1.y + " C" + p1.x + " " + ym + " " + p2.x + " " + ym + " " + p2.x + " " + p2.y;
+  }
+  e.path = el("path", {d:d, "class":"edge"}, gEdges);
+  e.len = e.path.getTotalLength();
+  var mid = e.path.getPointAtLength(e.len / 2);
+  e.badge = el("g", {"class":"badge", transform:"translate(" + mid.x + "," + mid.y + ")"}, gEdges);
+  el("circle", {r:11}, e.badge);
+  text(e.badge, "", 0, 0, String(e.step));
+  e.bi = !!e.bidirectional;
+});
+
+/* ---- nodes ---- */
+nodes.forEach(function(n){
+  var t = TYPE_LABELS[n.type] ? n.type : "system";
+  var g = el("g", {"class":"node", tabindex:"-1"}, gNodes);
+  n.g = g;
+  var tip = el("title", {}, g);
+  tip.textContent = n.label + " (" + TYPE_LABELS[t] + ")" + (n.approved_by ? " - approved by " + n.approved_by : "") + (n.note ? " - " + n.note : "");
+  el("rect", {x:n._x - NW / 2, y:n._y, width:NW, height:NH, rx:12, style:"fill:var(--" + t + "-bg);stroke:var(--" + t + "-bd)"}, g);
+  var lines = wrap(n.label, 26), hasSrc = !!n.approved_by;
+  var total = lines.length + (hasSrc ? 1 : 0);
+  var first = n._y + NH / 2 - (total - 1) * 8 + 4;
+  lines.forEach(function(s, i){ text(g, "", n._x, first + i * 16, s); });
+  if (hasSrc){ text(g, "src", n._x, first + lines.length * 16 + 1, "✓ " + clip(n.approved_by, 30)); }
+});
+
+/* ---- side panel ---- */
+var stepsEl = document.getElementById("steps");
+edges.forEach(function(e, i){
+  var item = document.createElement("li");
+  item.className = "step"; item.tabIndex = 0;
+  var n = document.createElement("span"); n.className = "n"; n.textContent = String(e.step);
+  var box = document.createElement("span");
+  var tt = document.createElement("div"); tt.className = "t"; tt.textContent = e.label;
+  var dd = document.createElement("div"); dd.className = "d"; dd.textContent = e.a.label + (e.bi ? " ↔ " : " → ") + e.b.label;
+  box.appendChild(tt); box.appendChild(dd); item.appendChild(n); item.appendChild(box);
+  item.addEventListener("click", function(){ stop(); idx = i; render(); });
+  item.addEventListener("keydown", function(ev){ if (ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); stop(); idx = i; render(); } });
+  stepsEl.appendChild(item); e.item = item;
+});
+var approved = nodes.filter(function(n){ return n.approved_by; });
+var apEl = document.getElementById("approved");
+approved.forEach(function(n){ li(apEl, n.label + " — " + n.approved_by); });
+if (!approved.length){ document.getElementById("gov-approved").style.display = "none"; }
+var repEl = document.getElementById("replaced"), reps = spec.replaced || [];
+reps.forEach(function(r){ li(repEl, r.requested + " → " + r.used_instead + " (" + r.reason + ")"); });
+if (!reps.length){ document.getElementById("gov-replaced").style.display = "none"; }
+var asEl = document.getElementById("assumptions"), ass = spec.assumptions || [];
+ass.forEach(function(a){ li(asEl, a); });
+if (!ass.length){ document.getElementById("gov-assumptions").style.display = "none"; }
+var legend = document.getElementById("legend"), seen = {};
+nodes.forEach(function(n){
+  var t = TYPE_LABELS[n.type] ? n.type : "system";
+  if (seen[t]) return; seen[t] = 1;
+  var s = document.createElement("span"), sw = document.createElement("i");
+  sw.style.background = "var(--" + t + "-bg)"; sw.style.borderColor = "var(--" + t + "-bd)";
+  s.appendChild(sw); s.appendChild(document.createTextNode(TYPE_LABELS[t])); legend.appendChild(s);
+});
+
+/* ---- animation ---- */
+var dot = el("circle", {r:7, "class":"dot", style:"display:none"}, gOver);
+var bubble = el("g", {"class":"elabel", style:"display:none"}, gOver);
+var bubbleRect = el("rect", {rx:8, height:24}, bubble);
+var bubbleText = el("text", {}, bubble);
+var idx = -1, playing = false, timer = null, raf = null, speed = 1;
+var playBtn = document.getElementById("play");
+
+function setEdge(e, state){
+  e.path.setAttribute("class", "edge" + (state === "idle" ? "" : " " + state));
+  e.path.setAttribute("marker-end", "url(#arrow-" + (state === "active" ? "a" : state === "done" ? "d" : "n") + ")");
+  if (e.bi){ e.path.setAttribute("marker-start", "url(#arrow-" + (state === "active" ? "a" : state === "done" ? "d" : "n") + ")"); }
+  e.badge.setAttribute("class", "badge" + (state === "idle" ? "" : " " + state));
+  e.item.className = "step" + (state === "idle" ? "" : " " + state);
+}
+function render(){
+  var visited = {}, hot = {};
+  edges.forEach(function(e, i){
+    setEdge(e, i < idx ? "done" : (i === idx ? "active" : "idle"));
+    if (i <= idx){ visited[e.a.id] = 1; visited[e.b.id] = 1; }
+    if (i === idx){ hot[e.a.id] = 1; hot[e.b.id] = 1; }
+  });
+  nodes.forEach(function(n){
+    var c = "node";
+    if (idx >= 0 && !visited[n.id]){ c += " dim"; }
+    if (hot[n.id]){ c += " hot"; }
+    n.g.setAttribute("class", c);
+  });
+  if (idx >= 0){
+    var e = edges[idx], mid = e.path.getPointAtLength(e.len / 2), w = Math.max(60, e.label.length * 6.8 + 20);
+    bubbleText.textContent = e.label;
+    bubbleRect.setAttribute("width", w); bubbleRect.setAttribute("x", -w / 2); bubbleRect.setAttribute("y", -12);
+    bubble.setAttribute("transform", "translate(" + mid.x + "," + (mid.y - 26) + ")");
+    bubble.style.display = "";
+    if (e.item && e.item.scrollIntoView){ e.item.scrollIntoView({block:"nearest"}); }
+  } else { bubble.style.display = "none"; }
+  playBtn.textContent = playing ? "Pause" : "Play";
+}
+function hideDot(){ dot.style.display = "none"; }
+function stop(){
+  playing = false;
+  if (timer){ clearTimeout(timer); timer = null; }
+  if (raf){ cancelAnimationFrame(raf); raf = null; }
+  hideDot(); playBtn.textContent = "Play";
+}
+function animateDot(e, done){
+  var dur = (e.bi ? 2600 : 1300) / speed, t0 = null;
+  dot.style.display = "";
+  function frame(ts){
+    if (t0 === null){ t0 = ts; }
+    var p = Math.min(1, (ts - t0) / dur);
+    var q = e.bi ? (p < 0.5 ? p * 2 : 2 - 2 * p) : p;
+    var pt = e.path.getPointAtLength(q * e.len);
+    dot.setAttribute("cx", pt.x); dot.setAttribute("cy", pt.y);
+    if (p < 1){ raf = requestAnimationFrame(frame); } else { raf = null; hideDot(); done(); }
+  }
+  raf = requestAnimationFrame(frame);
+}
+function runStep(i){
+  if (!playing){ return; }
+  if (i >= edges.length){
+    timer = setTimeout(function(){ idx = -1; render(); runStep(0); }, 1800 / speed);
+    return;
+  }
+  idx = i; render();
+  if (reduce){ timer = setTimeout(function(){ runStep(i + 1); }, 1800 / speed); return; }
+  animateDot(edges[i], function(){ timer = setTimeout(function(){ runStep(i + 1); }, 400 / speed); });
+}
+playBtn.addEventListener("click", function(){
+  if (playing){ stop(); render(); return; }
+  playing = true; render();
+  runStep(idx >= 0 && idx < edges.length - 1 ? idx : 0);
+});
+document.getElementById("step").addEventListener("click", function(){
+  stop(); idx = (idx + 1 >= edges.length) ? 0 : idx + 1; render();
+});
+document.getElementById("reset").addEventListener("click", function(){ stop(); idx = -1; render(); });
+document.getElementById("speed").addEventListener("change", function(ev){ speed = parseFloat(ev.target.value) || 1; });
+
+render();
+if (!reduce){ playing = true; render(); timer = setTimeout(function(){ runStep(0); }, 700); }
+})();
+</script>
+</body>
+</html>
